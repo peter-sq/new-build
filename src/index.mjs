@@ -4,6 +4,31 @@ app.use(express.json())
 
 const PORT = process.env.PORT || 3000
 
+//middleWare functions
+const loggingMiddleWare = (req, res, next) => {
+    console.log(`${req.method} - ${req.url}`)
+    next();
+};
+
+app.use(loggingMiddleWare, (req, res, next) => {
+    console.log('finished logging...... ')
+    next();
+});
+
+const resolveIndexByUserId = (req, res, next) => {
+    const {
+        body,
+        params: { id }} = req;
+    const parseId = parseInt(id)
+    if(isNaN(parseId)) return res.sendStatus(400);
+    const findUserIndex = usersTable.findIndex((user) => user.id === parseId)
+    if(findUserIndex === -1) return res.sendStatus(404);
+    req.findUserIndex === findUserIndex;
+    next();
+
+  
+}
+
 //GET Request
 const usersTable = [
     {id : 1, userName: 'ade', displayName: 'ade'},
@@ -41,11 +66,9 @@ app.get('/api/users', (req, res) => {
  })
 
  //get by user id
- app.get('/api/users/:id', (req, res) => {
-    const parseId = parseInt(req.params.id)
-    if(isNaN(parseId)) return res.status(400).send({msg: "Bad request "})
-    
-    const findUser = usersTable.find((user) => user.id === parseId)
+ app.get('/api/users/:id', resolveIndexByUserId,  (req, res) => {
+    const {findUserIndex} = req;
+    const findUser = usersTable[findUserIndex];
     if(!findUser) return res.sendStatus(404);
     return res.send(findUser);
  })
@@ -59,41 +82,31 @@ app.get('/api/users', (req, res) => {
  })
 
 //PUT Request
-app.put('/api/users/:id', (req, res) => {
-    const {body, params: { id }} = req;
-    const parseId = parseInt(id)
-    if(isNaN(parseId)) return res.sendStatus(400);
-    
-    const findUserIndex = usersTable.findIndex(
-        (user) => user.id === parseId
-    );
-
-    if(findUserIndex === -1) return res.sendStatus(404);
-    usersTable[findUserIndex] = {id: parseId, ...body}
+app.put('/api/users/:id', resolveIndexByUserId, (req, res) => {
+    const {body, findUserIndex} = req;
+    usersTable[findUserIndex] = {id: usersTable[findUserIndex].id, ...body}
     res.sendStatus(200)
 })
 
 //PATCH Request
-app.patch("/api/users/:id", (req, res) => {
-    const {body, params: { id }} = req;
-    const parseId = parseInt(id)
-    if(isNaN(parseId)) return res.sendStatus(400);
-    const findUserIndex = usersTable.findIndex((user) => user.id === parseId)
-    if(findUserIndex === -1) return res.sendStatus(404);
+app.patch("/api/users/:id", resolveIndexByUserId, (req, res) => {
+    const {body, findUserIndex} = req;
     usersTable[findUserIndex] = {...usersTable[findUserIndex], ...body};
     return res.sendStatus(200);
 })
 
 //DELETE Request
-app.delete("/api/users/:id", (req, res) => {
-    const {params: { id }} = req;
+app.delete("/api/users/:id", resolveIndexByUserId, (req, res) => {
+    const { findUserIndex } = req;
     const parseId = parseInt(id)
-    if(isNaN(parseId)) return res.sendStatus(400);
-    const findUserIndex = usersTable.findIndex((user) => user.id === parseId)
-    if(findUserIndex === -1) return res.sendStatus(404);
-    usersTable.splice(findUserIndex);
+    usersTable.splice(findUserIndex, 1);
     return res.sendStatus(200)
-})
+});
+
+
+
+
+
 
 
 app.listen(PORT, () => {
